@@ -1,7 +1,6 @@
 const express = require('express');
 const app = express();
 const port = 3000;
-const fs = require('fs')
 const admin = require('firebase-admin');
 const serviceAccount = require('./tracing-covid19-firebase-adminsdk-1nr32-d619b0edff.json');
 
@@ -9,7 +8,6 @@ admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
 });
 
-app.use('/token', express.static('token'));
 app.use(express.json());
 
 app.post('/api-student', (req, res) => {
@@ -21,18 +19,16 @@ app.post('/api-student', (req, res) => {
         .createCustomToken(req.body.uid)
         .then((customToken) => {
             
-            const token = {
-                token: customToken
-            }
-
-            const jsonToken = JSON.stringify(token)
-            fs.writeFile(`./token/${req.body.uid}.json`, jsonToken, err => {
-                if(err) {
-                    console.log('Error writing file', err)
-                } else {
-                    console.log('Successfully wrote file')
-                }
-            })
+            admin
+                .firestore()
+                .collection('student')
+                .doc(req.body.uid)
+                .update({
+                    token: customToken
+                })
+                .then(() => {
+                    console.log(`Token UID:${req.body.uid} Updated`)
+                })
         })
 })
 
@@ -44,19 +40,17 @@ app.post('/api-admin', (req, res) => {
         .auth()
         .createCustomToken(req.body.username)
         .then((customToken) => {
-            
-            const token = {
-                token: customToken
-            }
 
-            const jsonToken = JSON.stringify(token)
-            fs.writeFile(`./token/${req.body.username}.json`, jsonToken, err => {
-                if(err) {
-                    console.log('Error writing file', err)
-                } else {
-                    console.log('Successfully wrote file')
-                }
-            })
+            admin
+                .firestore()
+                .collection('admin')
+                .doc(req.body.username)
+                .update({
+                    token: customToken
+                })
+                .then(() => {
+                    console.log(`Token UID:${req.body.username} Updated`)
+                })
         })
 })
 
